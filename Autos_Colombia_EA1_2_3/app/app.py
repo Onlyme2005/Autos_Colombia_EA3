@@ -391,6 +391,21 @@ def listar_pagos():
     return jsonify([dict(r) for r in rows])
 
 
+@app.get('/api/pagos/<int:pago_id>')
+def obtener_pago(pago_id):
+    with conn() as c:
+        row = c.execute('''SELECT p.*, v.placa, m.entrada, m.salida
+                           FROM pago p
+                           JOIN movimiento m ON m.id=p.movimiento_id
+                           JOIN vehiculo v ON v.id=m.vehiculo_id
+                           WHERE p.id=?''', (pago_id,)).fetchone()
+    if not row:
+        return {'error': 'pago no encontrado'}, 404
+    result = dict(row)
+    result['recibo'] = f'REC-{pago_id:06d}' if result['estado'] == 'PAGADO' else None
+    return jsonify(result)
+
+
 @app.post('/api/pagos')
 def registrar_pago():
     data = body()
